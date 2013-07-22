@@ -891,7 +891,10 @@ NSComparisonResult compareViewDepth(UIView *view1, UIView *view2, iCarousel *sel
         }
     }
     
-    //calculate transform
+	if ([self.delegate respondsToSelector: @selector(carousel:itemView:atIndex:willOffsetTo:)])
+		[self.delegate carousel: self itemView: view atIndex: index willOffsetTo: offset];
+
+   //calculate transform
     CATransform3D transform = [self transformForItemView:view withOffset:offset];
     
     //transform view

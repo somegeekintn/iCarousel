@@ -7,7 +7,9 @@
 //
 
 #import "iCarouselExampleViewController.h"
+#import <objc/runtime.h>
 
+static char				kGradientObjectKey;
 
 @interface iCarouselExampleViewController () <UIActionSheetDelegate>
 
@@ -31,7 +33,7 @@
     //set up data
     wrap = YES;
     self.items = [NSMutableArray array];
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < 8; i++)
     {
         [items addObject:[NSNumber numberWithInt:i]];
     }
@@ -172,20 +174,23 @@
 
 - (UIView *)carousel:(iCarousel *)carousel viewForItemAtIndex:(NSUInteger)index reusingView:(UIView *)view
 {
-    UILabel *label = nil;
+    UILabel			*label = nil;
+    CAGradientLayer	*gradientLayer = nil;
     
     //create new view if no view is available for recycling
     if (view == nil)
     {
-        view = [[[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 200.0f, 200.0f)] autorelease];
-        ((UIImageView *)view).image = [UIImage imageNamed:@"page.png"];
-        view.contentMode = UIViewContentModeCenter;
+        view = [[[UIView alloc] initWithFrame: CGRectMake(0, 0, 400.0f, 200.0f)] autorelease];
         label = [[[UILabel alloc] initWithFrame:view.bounds] autorelease];
         label.backgroundColor = [UIColor clearColor];
         label.textAlignment = UITextAlignmentCenter;
         label.font = [label.font fontWithSize:50];
         label.tag = 1;
         [view addSubview:label];
+
+        gradientLayer = [[[CAGradientLayer alloc] init] autorelease];
+        [view.layer addSublayer: gradientLayer];
+		objc_setAssociatedObject(view, kGradientObjectKey, gradientLayer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     else
     {
@@ -199,7 +204,13 @@
     //you'll get weird issues with carousel item content appearing
     //in the wrong place in the carousel
     label.text = [[items objectAtIndex:index] stringValue];
-    
+	view.backgroundColor = [UIColor colorWithHue: (CGFloat)index / (CGFloat)[items count] saturation: 1.0 brightness: 1.0 alpha: 1.0];
+	gradientLayer.bounds = view.bounds;
+	gradientLayer.position = CGPointMake(CGRectGetMidX(view.bounds), CGRectGetMidY(view.bounds));
+	gradientLayer.colors = @[ (id)[[[UIColor blackColor] colorWithAlphaComponent: 0.0] CGColor], (id)[[[UIColor blackColor] colorWithAlphaComponent: 0.75] CGColor]];
+	gradientLayer.startPoint = CGPointMake(0.5, 0.5);
+	gradientLayer.endPoint = CGPointMake(1.0, 0.5);
+   
     return view;
 }
 
@@ -211,7 +222,7 @@
 
 - (UIView *)carousel:(iCarousel *)carousel placeholderViewAtIndex:(NSUInteger)index reusingView:(UIView *)view
 {
-    UILabel *label = nil;
+    UILabel	*label = nil;
     
     //create new view if no view is available for recycling
     if (view == nil)
@@ -223,7 +234,7 @@
         ((UIImageView *)view).image = [UIImage imageNamed:@"page.png"];
         view.contentMode = UIViewContentModeCenter;
         
-        label = [[[UILabel alloc] initWithFrame:view.bounds] autorelease];
+        label = [[[UILabel alloc] initWithFrame: view.bounds] autorelease];
         label.backgroundColor = [UIColor clearColor];
         label.textAlignment = UITextAlignmentCenter;
         label.font = [label.font fontWithSize:50.0f];
@@ -253,6 +264,43 @@
     return CATransform3DTranslate(transform, 0.0f, 0.0f, offset * carousel.itemWidth);
 }
 
+- (void) carousel: (iCarousel *) inCarousel
+	itemView: (UIView *) inItemView
+	atIndex: (NSInteger) inIndex
+	willOffsetTo: (CGFloat) inOffset
+{
+	CAGradientLayer		*gradientLayer = objc_getAssociatedObject(inItemView, kGradientObjectKey);
+	
+	if (gradientLayer != nil) {
+		if (inOffset < 0.0) {
+			gradientLayer.startPoint = CGPointMake(0.5, 0.5);
+			gradientLayer.endPoint = CGPointMake(1.0, 0.5);
+		}
+		else if (inOffset > 0.0) {
+			gradientLayer.startPoint = CGPointMake(0.5, 0.5);
+			gradientLayer.endPoint = CGPointMake(0.0, 0.5);
+		}
+		
+		if (inOffset <= -1.0) {
+			gradientLayer.opacity = 1.0;
+		}
+		else if (inOffset >= 1.0) {
+			gradientLayer.opacity = 1.0;
+		}
+		else {
+			if (inOffset > 0.5) {
+				gradientLayer.opacity = 0.2 + ((inOffset - 0.5) / 0.5) * 0.8;
+			}
+			else if (inOffset < -0.5) {
+				gradientLayer.opacity = 0.2 + ((-inOffset - 0.5) / 0.5) * 0.8;
+			}
+			else {
+				gradientLayer.opacity = 0.0;
+			}
+		}
+	}
+}
+
 - (CGFloat)carousel:(iCarousel *)_carousel valueForOption:(iCarouselOption)option withDefault:(CGFloat)value
 {
     //customize carousel display
@@ -266,7 +314,7 @@
         case iCarouselOptionSpacing:
         {
             //add a bit of spacing between the item views
-            return value * 1.05f;
+            return value * 1.6;
         }
         case iCarouselOptionFadeMax:
         {
