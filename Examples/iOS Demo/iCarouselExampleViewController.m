@@ -189,6 +189,7 @@ static char				kGradientObjectKey;
         [view addSubview:label];
 
         gradientLayer = [[[CAGradientLayer alloc] init] autorelease];
+		gradientLayer.colors = @[ (id)[[[UIColor blackColor] colorWithAlphaComponent: 0.0] CGColor], (id)[[[UIColor blackColor] colorWithAlphaComponent: 0.75] CGColor]];
         [view.layer addSublayer: gradientLayer];
 		objc_setAssociatedObject(view, kGradientObjectKey, gradientLayer, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
@@ -205,11 +206,15 @@ static char				kGradientObjectKey;
     //in the wrong place in the carousel
     label.text = [[items objectAtIndex:index] stringValue];
 	view.backgroundColor = [UIColor colorWithHue: (CGFloat)index / (CGFloat)[items count] saturation: 1.0 brightness: 1.0 alpha: 1.0];
-	gradientLayer.bounds = view.bounds;
-	gradientLayer.position = CGPointMake(CGRectGetMidX(view.bounds), CGRectGetMidY(view.bounds));
-	gradientLayer.colors = @[ (id)[[[UIColor blackColor] colorWithAlphaComponent: 0.0] CGColor], (id)[[[UIColor blackColor] colorWithAlphaComponent: 0.75] CGColor]];
-	gradientLayer.startPoint = CGPointMake(0.5, 0.5);
-	gradientLayer.endPoint = CGPointMake(1.0, 0.5);
+	if (self.carousel.type == iCarouselTypeCoverFlow2) {
+		gradientLayer.bounds = view.bounds;
+		gradientLayer.position = CGPointMake(CGRectGetMidX(view.bounds), CGRectGetMidY(view.bounds));
+		gradientLayer.startPoint = CGPointMake(0.5, 0.5);
+		gradientLayer.endPoint = CGPointMake(1.0, 0.5);
+	}
+	else {
+		gradientLayer.opacity = 0.0;
+	}
    
     return view;
 }
@@ -272,31 +277,36 @@ static char				kGradientObjectKey;
 	CAGradientLayer		*gradientLayer = objc_getAssociatedObject(inItemView, kGradientObjectKey);
 	
 	if (gradientLayer != nil) {
-		if (inOffset < 0.0) {
-			gradientLayer.startPoint = CGPointMake(0.5, 0.5);
-			gradientLayer.endPoint = CGPointMake(1.0, 0.5);
-		}
-		else if (inOffset > 0.0) {
-			gradientLayer.startPoint = CGPointMake(0.5, 0.5);
-			gradientLayer.endPoint = CGPointMake(0.0, 0.5);
-		}
-		
-		if (inOffset <= -1.0) {
-			gradientLayer.opacity = 1.0;
-		}
-		else if (inOffset >= 1.0) {
-			gradientLayer.opacity = 1.0;
-		}
-		else {
-			if (inOffset > 0.5) {
-				gradientLayer.opacity = 0.2 + ((inOffset - 0.5) / 0.5) * 0.8;
+		if (carousel.type == iCarouselTypeCoverFlow2) {
+			if (inOffset < 0.0) {
+				gradientLayer.startPoint = CGPointMake(0.5, 0.5);
+				gradientLayer.endPoint = CGPointMake(1.0, 0.5);
 			}
-			else if (inOffset < -0.5) {
-				gradientLayer.opacity = 0.2 + ((-inOffset - 0.5) / 0.5) * 0.8;
+			else if (inOffset > 0.0) {
+				gradientLayer.startPoint = CGPointMake(0.5, 0.5);
+				gradientLayer.endPoint = CGPointMake(0.0, 0.5);
+			}
+			
+			if (inOffset <= -1.0) {
+				gradientLayer.opacity = 1.0;
+			}
+			else if (inOffset >= 1.0) {
+				gradientLayer.opacity = 1.0;
 			}
 			else {
-				gradientLayer.opacity = 0.0;
+				if (inOffset > 0.5) {
+					gradientLayer.opacity = 0.2 + ((inOffset - 0.5) / 0.5) * 0.8;
+				}
+				else if (inOffset < -0.5) {
+					gradientLayer.opacity = 0.2 + ((-inOffset - 0.5) / 0.5) * 0.8;
+				}
+				else {
+					gradientLayer.opacity = 0.0;
+				}
 			}
+		}
+		else {
+			gradientLayer.opacity = 0.0;
 		}
 	}
 }
