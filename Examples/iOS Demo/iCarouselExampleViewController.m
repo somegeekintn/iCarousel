@@ -197,6 +197,7 @@ static char				kGradientObjectKey;
     {
         //get a reference to the label in the recycled view
         label = (UILabel *)[view viewWithTag:1];
+		gradientLayer = objc_getAssociatedObject(view, kGradientObjectKey);
     }
     
     //set item label
@@ -211,6 +212,7 @@ static char				kGradientObjectKey;
 		gradientLayer.position = CGPointMake(CGRectGetMidX(view.bounds), CGRectGetMidY(view.bounds));
 		gradientLayer.startPoint = CGPointMake(0.5, 0.5);
 		gradientLayer.endPoint = CGPointMake(1.0, 0.5);
+		gradientLayer.opacity = 1.0;
 	}
 	else {
 		gradientLayer.opacity = 0.0;
@@ -277,6 +279,9 @@ static char				kGradientObjectKey;
 	CAGradientLayer		*gradientLayer = objc_getAssociatedObject(inItemView, kGradientObjectKey);
 	
 	if (gradientLayer != nil) {
+		CGFloat		opacity = 0.0;
+		CGFloat		absOffs = fabsf(inOffset);
+		
 		if (carousel.type == iCarouselTypeCoverFlow2) {
 			if (inOffset < 0.0) {
 				gradientLayer.startPoint = CGPointMake(0.5, 0.5);
@@ -287,59 +292,48 @@ static char				kGradientObjectKey;
 				gradientLayer.endPoint = CGPointMake(0.0, 0.5);
 			}
 			
-			if (inOffset <= -1.0) {
-				gradientLayer.opacity = 1.0;
-			}
-			else if (inOffset >= 1.0) {
-				gradientLayer.opacity = 1.0;
-			}
+			if (absOffs >= 1.0)
+				opacity = 1.0;
 			else {
-				if (inOffset > 0.5) {
-					gradientLayer.opacity = 0.2 + ((inOffset - 0.5) / 0.5) * 0.8;
-				}
-				else if (inOffset < -0.5) {
-					gradientLayer.opacity = 0.2 + ((-inOffset - 0.5) / 0.5) * 0.8;
-				}
-				else {
-					gradientLayer.opacity = 0.0;
-				}
+				if (absOffs > 0.5)
+					opacity = 0.2 + ((absOffs - 0.5) / 0.5) * 0.8;
 			}
 		}
-		else {
-			gradientLayer.opacity = 0.0;
-		}
+		
+		gradientLayer.opacity = opacity;
 	}
 }
 
 - (CGFloat)carousel:(iCarousel *)_carousel valueForOption:(iCarouselOption)option withDefault:(CGFloat)value
 {
-    //customize carousel display
-    switch (option)
-    {
-        case iCarouselOptionWrap:
-        {
-            //normally you would hard-code this to YES or NO
-            return wrap;
-        }
-        case iCarouselOptionSpacing:
-        {
-            //add a bit of spacing between the item views
-            return value * 1.6;
-        }
-        case iCarouselOptionFadeMax:
-        {
-            if (carousel.type == iCarouselTypeCustom)
-            {
-                //set opacity based on distance from camera
-                return 0.0f;
-            }
-            return value;
-        }
-        default:
-        {
-            return value;
-        }
-    }
+	//customize carousel display
+	switch (option) {
+		case iCarouselOptionWrap: {
+				value = wrap;		//normally you would hard-code this to YES or NO
+			}
+			break;
+
+		case iCarouselOptionSpacing: {
+				//add a bit of spacing between the item views
+				
+				if (self.carousel.type == iCarouselTypeCoverFlow2)
+					value *= 1.6;
+				else
+					value *= 1.05;
+			}
+			break;
+
+		case iCarouselOptionFadeMax: {
+				if (carousel.type == iCarouselTypeCustom)	//set opacity based on distance from camera
+					value = 0.0f;
+			}
+			break;
+		
+		default:
+			break;
+	}
+
+	return value;
 }
 
 #pragma mark -
